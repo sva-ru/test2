@@ -1,0 +1,52 @@
+version: '3.9'
+
+services:
+
+  pg_db:
+    image: postgres:14.3-alpine3.15
+    container_name: pg_db
+    ports:
+      - "5431:5432"
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${DP_USER}
+      POSTGRES_PASSWORD: ${DP_PASSWORD}
+      POSTGRES_DB: "DP_BASE"
+    volumes:
+      - ./logs:/var/log
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    depends_on:
+      - pg_db
+  app:
+    build: .
+    image: netology_pd_diplom:latest
+    container_name: app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    volumes:
+      - .:/app
+      - static_volume:/static/
+      - media_volume:/media/
+  nginx:
+    build:
+      dockerfile: ./Dockerfile
+      context: ./nginx/
+    container_name: app_nginx
+    image: app_nginx
+    depends_on:
+      - app
+    ports:
+      - "${NGINX_EXTERNAL_PORT}:80"
+volumes:
+  static_volume:
+  media_volume:
